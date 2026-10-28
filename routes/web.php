@@ -37,6 +37,14 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('throttle:20,1')
         ->name('audio.upload');
 
+    Route::post('/audio/upload/presign', [AudioController::class, 'presign'])
+        ->middleware('throttle:60,1')
+        ->name('audio.upload.presign');
+
+    Route::post('/audio/upload/complete', [AudioController::class, 'complete'])
+        ->middleware('throttle:60,1')
+        ->name('audio.upload.complete');
+
     Route::delete('/audio', [AudioController::class, 'clear'])
         ->middleware('throttle:10,1')
         ->name('audio.clear');

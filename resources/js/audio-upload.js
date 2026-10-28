@@ -6,6 +6,9 @@ export class UploadManager {
     constructor(options) {
         this.input = options.input;
         this.uploadUrl = options.uploadUrl;
+        this.presignUrl = options.presignUrl ?? '/audio/upload/presign';
+        this.completeUrl = options.completeUrl ?? '/audio/upload/complete';
+        this.directUpload = Boolean(options.directUpload);
         this.maxUploadMb = Number(options.maxUploadMb) || 100;
         this.maxFiles = Number(options.maxFiles) || 10;
         this.callbacks = options.callbacks ?? {};
@@ -144,6 +147,10 @@ export class UploadManager {
     }
 
     upload(files) {
+        if (this.directUpload) {
+            return this.uploadDirect(files);
+        }
+
         this.uploading = true;
         this.showProgress(0, files[0]?.name ?? '');
 
@@ -215,6 +222,135 @@ export class UploadManager {
             });
 
             request.send(formData);
+        });
+    }
+
+    async uploadDirect(files) {
+        this.uploading = true;
+        const stored = [];
+        const errors = [];
+
+        for (const file of files) {
+            this.showProgress(0, file.name);
+
+            try {
+                const presigned = await this.requestJson(this.presignUrl, {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type || 'application/octet-stream',
+                });
+
+                const data = presigned?.data;
+
+                if (!data?.url || !data?.key) {
+                    throw new Error('The upload could not be prepared. Please try again.');
+                }
+
+                await this.putFile(data.url, file, data.headers ?? {}, (percent) => {
+                    this.showProgress(percent, file.name);
+                });
+
+                const completed = await this.requestJson(this.completeUrl, {
+                    key: data.key,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type || 'application/octet-stream',
+                });
+
+                stored.push(...(completed?.data?.files ?? []));
+                (completed?.errors ?? []).forEach((error) => errors.push(error));
+                this.showProgress(100, file.name);
+            } catch (error) {
+                const messages = Array.isArray(error?.messages) && error.messages.length > 0
+                    ? error.messages
+                    : [error?.message ?? 'The upload could not be completed.'];
+
+                messages.forEach((message) => errors.push({ name: file.name, message }));
+            }
+        }
+
+        this.uploading = false;
+        this.hideProgressSoon();
+
+        const message = stored.length === 0
+            ? 'No audio files could be uploaded.'
+            : stored.length === 1
+                ? 'Audio file uploaded successfully.'
+                : `${stored.length} audio files uploaded successfully.`;
+
+        this.callbacks.onUploaded?.(stored, errors, message);
+    }
+
+    async requestJson(url, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            body: JSON.stringify(payload),
+        });
+
+        let data = null;
+
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = null;
+        }
+
+        if (!response.ok) {
+            const messages = this.extractErrors(data);
+            const failure = new Error(
+                messages[0]
+                    ?? (response.status === 419
+                        ? 'Your session expired. Refresh the page and try again.'
+                        : 'The upload could not be completed.'),
+            );
+            failure.messages = messages;
+
+            throw failure;
+        }
+
+        return data;
+    }
+
+    putFile(url, file, headers, onProgress) {
+        return new Promise((resolve, reject) => {
+            const request = new XMLHttpRequest();
+            request.open('PUT', url, true);
+
+            Object.entries(headers ?? {}).forEach(([key, value]) => {
+                request.setRequestHeader(key, value);
+            });
+
+            request.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    onProgress?.(Math.round((event.loaded / event.total) * 100));
+                }
+            });
+
+            request.addEventListener('load', () => {
+                if (request.status >= 200 && request.status < 300) {
+                    resolve();
+                    return;
+                }
+
+                reject(new Error('The storage service rejected the upload. Check the bucket CORS settings.'));
+            });
+
+            request.addEventListener('error', () => {
+                reject(new Error('The upload failed because the connection to storage was interrupted.'));
+            });
+
+            request.addEventListener('abort', () => {
+                reject(new Error('The upload was cancelled.'));
+            });
+
+            request.send(file);
         });
     }
 

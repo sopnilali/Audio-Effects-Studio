@@ -2213,18 +2213,65 @@ textarea {
     .mobile-view-toggle { display: inline-flex; }
 
     .topbar {
-        gap: 0.6rem;
-        flex-wrap: wrap;
-        padding: 0.7rem 0.9rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            "brand toggle user"
+            "actions actions actions";
+        align-items: center;
+        gap: 0.55rem 0.7rem;
+        padding: 0.65rem 0.8rem;
     }
 
-    .brand { min-width: 0; flex: 1; }
+    .brand {
+        grid-area: brand;
+        min-width: 0;
+    }
+
+    .brand-copy { min-width: 0; }
+
+    .brand-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-view-toggle {
+        grid-area: toggle;
+        justify-self: end;
+    }
+
+    .topbar-actions {
+        grid-area: actions;
+        width: 100%;
+        gap: 0.45rem;
+    }
+
+    .topbar-actions > .btn,
+    .topbar-actions > .dropdown {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .topbar-actions > .dropdown > .btn { width: 100%; }
+
+    .topbar-actions .btn {
+        justify-content: center;
+        padding-inline: 0.55rem;
+    }
+
+    .topbar-user {
+        grid-area: user;
+        justify-self: end;
+    }
+
+    .topbar-spacer,
+    .topbar-status,
+    .topbar-divider {
+        display: none;
+    }
+
     .brand-subtitle { display: none; }
-    .topbar-status { display: none; }
-    .topbar-divider { display: none; }
-    .topbar-actions { gap: 0.35rem; }
-    .topbar-actions .btn-label { display: none; }
-    .topbar-actions .btn { padding-inline: 0.7rem; }
     .user-name { display: none; }
 
     .file-panel-scroll { padding: 1rem 0.9rem calc(var(--player-height) + 1.2rem); }
@@ -2254,11 +2301,35 @@ textarea {
 }
 
 @media (max-width: 575.98px) {
-    .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
-    .brand-title { font-size: 0.88rem; }
-    .topbar { padding-inline: 0.65rem; }
-    .topbar-actions .btn-studio-primary .btn-label { display: none; }
-    .topbar-actions .btn-studio-primary { padding-inline: 0.65rem; }
+    .topbar {
+        gap: 0.5rem 0.55rem;
+        padding: 0.55rem 0.65rem;
+    }
+
+    .brand-mark { width: 36px; height: 36px; border-radius: 11px; }
+    .brand-title { font-size: 0.82rem; }
+
+    .mobile-view-toggle {
+        padding: 3px;
+        border-radius: 10px;
+    }
+
+    .mobile-view-toggle button {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .topbar-actions { gap: 0.35rem; }
+
+    .topbar-actions .btn {
+        padding: 0.45rem 0.35rem;
+        font-size: 0.72rem;
+    }
+
+    .topbar-actions .btn i { margin-right: 0.3rem !important; }
+
+    .user-menu { padding: 0.25rem 0.3rem 0.25rem 0.25rem; }
+
     .preset-grid { grid-template-columns: 1fr; }
     .preset-card { min-height: 0; flex-direction: row; align-items: center; }
     .preset-copy { min-width: 0; }
@@ -2275,6 +2346,18 @@ textarea {
     .player-controls { gap: 0.15rem; }
     .player-controls .icon-button { width: 30px; height: 30px; }
     .player-controls .play-button { width: 40px; height: 40px; }
+}
+
+@media (max-width: 399.98px) {
+    .mobile-view-toggle button {
+        padding: 0.4rem 0.55rem;
+        font-size: 0;
+    }
+
+    .mobile-view-toggle button i {
+        margin-right: 0 !important;
+        font-size: 0.8rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

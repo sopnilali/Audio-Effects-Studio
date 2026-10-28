@@ -32,6 +32,8 @@
 - [x] Upload limits raised for `php artisan serve`
 - [x] `public/.user.ini` for PHP-FPM/Apache
 - [x] Documentation for Nginx/Apache/PHP limits
+- [x] Direct-to-S3/R2 uploads for serverless body-size limits
+- [x] Private S3/R2 storage with local-disk fallback
 
 ## Playback and waveform
 
@@ -81,7 +83,8 @@
 - [x] Rate limiting on upload/export/status routes
 - [x] FormRequest validation
 - [x] Authorization policies and cross-user tests
-- [x] Private disk storage
+- [x] Private disk storage with optional private S3/R2 storage
+- [x] Presigned direct uploads and ownership checks for object keys
 - [x] No shell interpolation; Symfony Process argument arrays only
 - [x] `X-Content-Type-Options: nosniff` on downloads
 - [x] CSRF/session/database queue configuration documented
@@ -96,6 +99,7 @@
 - [x] Main README with install, MySQL, FFmpeg and queue instructions
 - [x] `.env.example` with documented settings
 - [x] Deployment guide
+- [x] Vercel Container deployment guide
 - [x] Dependency/license document
 - [x] Known limitations document
 - [x] Completed/uncompleted checklist (this file)
@@ -109,7 +113,6 @@
 - [ ] Formant-preserving pitch shifting
 - [ ] OAuth/social login and email verification
 - [ ] Public share links
-- [ ] S3/R2/object-storage driver
 - [ ] WebSocket progress streaming
 - [ ] Native mobile apps
 - [ ] Prometheus/Grafana monitoring integration

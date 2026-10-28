@@ -70,7 +70,7 @@
         <span id="engineStatusText">{{ ($studio['environment']['ok'] ?? false) ? 'Audio engine ready' : 'Audio engine offline' }}</span>
     </div>
 
-    <button class="icon-button d-none d-md-inline-flex"
+    <button class="icon-button d-none d-lg-inline-flex"
             type="button"
             data-bs-toggle="modal"
             data-bs-target="#shortcutsModal"
@@ -79,7 +79,7 @@
         <i class="fa-regular fa-keyboard" aria-hidden="true"></i>
     </button>
 
-    <div class="dropdown">
+    <div class="dropdown topbar-user">
         <button class="user-menu dropdown-toggle"
                 type="button"
                 data-bs-toggle="dropdown"

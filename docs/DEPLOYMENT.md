@@ -2,6 +2,8 @@
 
 This guide targets a Linux server (Ubuntu 22.04/24.04 is a good baseline) running Nginx, PHP-FPM, MySQL 8+ and Supervisor. The application has no public storage symlink requirement because audio is served through authorized controller routes from the private disk.
 
+> Deploying to Vercel instead? Vercel requires external MySQL and S3/R2 storage, direct browser uploads, and the container runtime. See [VERCEL.md](VERCEL.md).
+
 ---
 
 ## 1. Server packages

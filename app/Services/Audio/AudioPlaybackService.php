@@ -3,12 +3,13 @@
 namespace App\Services\Audio;
 
 use App\Exceptions\AudioProcessingException;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 
 class AudioPlaybackService
 {
-    public function __construct(private readonly FfmpegRunner $ffmpeg) {}
+    public function __construct(
+        private readonly FfmpegRunner $ffmpeg,
+        private readonly AudioStorageService $storage,
+    ) {}
 
     /**
      * Every upload gets a browser-safe MP3 preview. This makes playback and
@@ -26,36 +27,39 @@ class AudioPlaybackService
             );
         }
 
-        $absoluteDestination = Storage::disk('local')->path($destinationRelativePath);
-        File::ensureDirectoryExists(dirname($absoluteDestination));
+        $temporary = $this->storage->temporaryPath('mp3');
 
-        $result = $this->ffmpeg->ffmpeg([
-            '-hide_banner',
-            '-nostdin',
-            '-v', 'error',
-            '-i', $sourceAbsolutePath,
-            '-map', '0:a:0',
-            '-vn',
-            '-c:a', 'libmp3lame',
-            '-b:a', (string) ($bitrate ?? config('audio.preview_bitrate', 128000)),
-            '-ar', '44100',
-            '-ac', '2',
-            '-y', $absoluteDestination,
-        ], 600);
+        try {
+            $result = $this->ffmpeg->ffmpeg([
+                '-hide_banner',
+                '-nostdin',
+                '-v', 'error',
+                '-i', $sourceAbsolutePath,
+                '-map', '0:a:0',
+                '-vn',
+                '-c:a', 'libmp3lame',
+                '-b:a', (string) ($bitrate ?? config('audio.preview_bitrate', 128000)),
+                '-ar', '44100',
+                '-ac', '2',
+                '-y', $temporary,
+            ], 600);
 
-        if ($result['exit_code'] !== 0 || ! is_file($absoluteDestination) || filesize($absoluteDestination) < 512) {
-            if (is_file($absoluteDestination)) {
-                @unlink($absoluteDestination);
+            if ($result['exit_code'] !== 0 || ! is_file($temporary) || filesize($temporary) < 512) {
+                throw AudioProcessingException::processingFailed('Unable to create the browser preview.');
             }
 
-            throw AudioProcessingException::processingFailed('Unable to create the browser preview.');
+            $this->storage->putLocalFile($temporary, $destinationRelativePath);
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
         }
     }
 
     public function deletePreview(?string $relativePath): void
     {
-        if ($relativePath && Storage::disk('local')->exists($relativePath)) {
-            Storage::disk('local')->delete($relativePath);
+        if ($relativePath) {
+            $this->storage->delete($relativePath);
         }
     }
 }

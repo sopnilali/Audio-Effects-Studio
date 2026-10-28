@@ -15,8 +15,8 @@ These are intentional scope boundaries, not hidden bugs. They are listed so oper
 ## Uploads and files
 
 - **100 MB / 30 minutes by default.** Limits are configurable but must stay aligned with PHP and web-server limits.
-- **Queue required for large files.** Files above `AUDIO_LARGE_UPLOAD_THRESHOLD_MB` stay in `processing` until a worker runs.
-- **Local private disk only.** The shipped configuration does not use S3/R2 or another object store.
+- **Queue required for large files.** Files above `AUDIO_LARGE_UPLOAD_THRESHOLD_MB` stay in `processing` until a worker runs. The Vercel demo profile uses synchronous processing instead.
+- **Local or S3-compatible storage.** Local private disk is the default. Serverless deployments must use `AUDIO_DISK=s3` and `AUDIO_DIRECT_UPLOAD=true`.
 - **No resumable uploads.** A dropped connection restarts the upload.
 - **No duplicate detection.** Uploading the same file twice creates two library entries.
 - **Filename display sanitization.** The original name is preserved for display/download, but unsafe characters are replaced in download basenames and storage paths are always UUID-based.
@@ -44,7 +44,10 @@ These are intentional scope boundaries, not hidden bugs. They are listed so oper
 - **FFmpeg licensing depends on the build.** Review the license of the FFmpeg binary you deploy, especially GPL-enabled builds.
 - **External CDNs.** Inter and Font Awesome are loaded from CDNs by default; offline deployments should self-host them.
 - **No built-in observability stack.** Use Laravel logs, Supervisor logs, and your platform's metrics. There is no Prometheus/Grafana integration.
-- **No horizontal file sharing.** Multiple application servers need shared storage or an object-store refactor; local private disks are node-specific.
+- **Local storage is node-specific.** Multiple application servers need S3/R2 shared storage; the S3 driver and direct uploads are included for that case.
+- **Vercel has no persistent filesystem or MySQL.** A Vercel deployment needs external MySQL and S3/R2. The container writes framework files to `/tmp`.
+- **Vercel request bodies are limited to 4.5 MB.** Large uploads require the presigned direct-to-bucket flow.
+- **No queue worker in the default Vercel profile.** Previews and exports run synchronously and can hit the platform timeout on long files. Use an external worker for production.
 
 ## Browser support
 

@@ -85,7 +85,7 @@ class AudioProcessingJob extends Model
     public function outputExists(): bool
     {
         return $this->output_path
-            && Storage::disk('local')->exists($this->output_path);
+            && Storage::disk(config('audio.disk', 'local'))->exists($this->output_path);
     }
 
     public function markProcessing(): void

@@ -20,7 +20,7 @@ class AudioWaveformService
         $peakCount = max(32, min(4000, $peakCount ?? (int) config('audio.waveform_peaks', 720)));
         $sampleRate = max(1000, (int) config('audio.waveform_sample_rate', 4000));
 
-        $temporaryDirectory = storage_path('app/private/temporary');
+        $temporaryDirectory = (string) config('audio.temp_directory', storage_path('app/private/temporary'));
         File::ensureDirectoryExists($temporaryDirectory);
 
         $rawPath = $temporaryDirectory.'/waveform-'.Str::uuid().'.raw';

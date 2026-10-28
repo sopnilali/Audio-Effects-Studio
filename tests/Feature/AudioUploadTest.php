@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\Concerns\InteractsWithAudio;
 use Tests\TestCase;
 
@@ -146,6 +147,63 @@ class AudioUploadTest extends TestCase
         )->assertUnprocessable();
 
         $this->assertSame(1, AudioFile::query()->count());
+    }
+
+    public function test_a_direct_upload_can_be_finalized_from_storage(): void
+    {
+        $user = User::factory()->create();
+        $key = 'audio/'.$user->id.'/'.Str::uuid().'.wav';
+        $bytes = $this->wavBytes(1.0);
+        Storage::disk('local')->put($key, $bytes);
+
+        $this->actingAs($user)->postJson(route('audio.upload.complete'), [
+            'key' => $key,
+            'name' => 'direct upload.wav',
+            'size' => strlen($bytes),
+            'type' => 'audio/wav',
+        ])->assertCreated()
+            ->assertJsonPath('data.files.0.original_name', 'direct upload.wav')
+            ->assertJsonPath('data.files.0.status', AudioFile::STATUS_READY);
+
+        $file = AudioFile::query()->sole();
+
+        $this->assertSame($key, $file->storage_path);
+        $this->assertTrue(Storage::disk('local')->exists($file->preview_path));
+
+        $this->actingAs($user)->postJson(route('audio.upload.complete'), [
+            'key' => $key,
+            'name' => 'direct upload.wav',
+            'size' => strlen($bytes),
+            'type' => 'audio/wav',
+        ])->assertUnprocessable();
+
+        $this->assertTrue(Storage::disk('local')->exists($key));
+    }
+
+    public function test_a_direct_upload_cannot_claim_another_users_object(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $key = 'audio/'.$other->id.'/'.Str::uuid().'.wav';
+
+        $this->actingAs($user)->postJson(route('audio.upload.complete'), [
+            'key' => $key,
+            'name' => 'stolen.wav',
+            'size' => 128,
+            'type' => 'audio/wav',
+        ])->assertUnprocessable()->assertJsonValidationErrors('key');
+    }
+
+    public function test_presigning_requires_configured_direct_uploads(): void
+    {
+        config(['audio.direct_upload' => false]);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->postJson(route('audio.upload.presign'), [
+            'name' => 'direct.wav',
+            'size' => 128,
+            'type' => 'audio/wav',
+        ])->assertUnprocessable();
     }
 
     public function test_large_files_are_queued_for_preparation(): void

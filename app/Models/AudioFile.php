@@ -167,7 +167,7 @@ class AudioFile extends Model
     public function hasPreview(): bool
     {
         return $this->preview_path
-            && Storage::disk('local')->exists($this->preview_path);
+            && Storage::disk(config('audio.disk', 'local'))->exists($this->preview_path);
     }
 
     /**
@@ -182,7 +182,11 @@ class AudioFile extends Model
 
     public function streamUrl(): ?string
     {
-        return $this->hasPreview() ? route('audio.stream', $this) : null;
+        if (! $this->preview_path || ! $this->isReady()) {
+            return null;
+        }
+
+        return route('audio.stream', $this);
     }
 
     /**

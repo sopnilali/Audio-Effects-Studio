@@ -29,8 +29,10 @@ class CleanupTemporaryAudioJob implements ShouldQueue
             ->chunkById(50, function ($files): void {
                 foreach ($files as $file) {
                     foreach (array_filter([$file->storage_path, $file->preview_path]) as $path) {
-                        if (Storage::disk('local')->exists($path)) {
-                            Storage::disk('local')->delete($path);
+                        $disk = Storage::disk(config('audio.disk', 'local'));
+
+                        if ($disk->exists($path)) {
+                            $disk->delete($path);
                         }
                     }
 

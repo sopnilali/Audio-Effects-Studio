@@ -3,18 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\AudioProcessingException;
+use App\Http\Requests\CompleteAudioUploadRequest;
+use App\Http\Requests\PresignAudioUploadRequest;
 use App\Http\Requests\RenameAudioRequest;
 use App\Http\Requests\UploadAudioRequest;
 use App\Models\AudioFile;
 use App\Services\Audio\AudioFileService;
+use App\Services\Audio\AudioStorageService;
 use App\Services\Audio\FfmpegRunner;
+use App\Services\Audio\S3UploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class AudioController extends Controller
@@ -22,6 +27,8 @@ class AudioController extends Controller
     public function __construct(
         private readonly AudioFileService $audioFiles,
         private readonly FfmpegRunner $ffmpeg,
+        private readonly AudioStorageService $storage,
+        private readonly S3UploadService $uploads,
     ) {}
 
     public function index(Request $request): View
@@ -71,6 +78,106 @@ class AudioController extends Controller
         ], $status);
     }
 
+    public function presign(PresignAudioUploadRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+        $extension = $this->audioFiles->extensionFromName((string) $validated['name']);
+
+        try {
+            $this->audioFiles->assertCanUpload($user, (int) $validated['size']);
+
+            $key = 'audio/'.$user->id.'/'.Str::uuid().'.'.$extension;
+            $contentType = (string) (($validated['type'] ?? null) ?: 'application/octet-stream');
+            $presigned = $this->uploads->presign($key, $contentType);
+        } catch (AudioProcessingException $exception) {
+            return response()->json([
+                'message' => $exception->safeMessage(),
+                'errors' => ['audio' => [$exception->safeMessage()]],
+            ], $exception->httpStatus);
+        } catch (Throwable $exception) {
+            Log::error('Unable to create a presigned upload URL', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Large uploads are temporarily unavailable. Please try again later.',
+                'errors' => ['audio' => ['Large uploads are temporarily unavailable. Please try again later.']],
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'key' => $key,
+                'url' => $presigned['url'],
+                'headers' => $presigned['headers'],
+                'expires_in' => $presigned['expires_in'],
+            ],
+        ]);
+    }
+
+    public function complete(CompleteAudioUploadRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validated();
+        $key = (string) $validated['key'];
+
+        if (AudioFile::query()->where('storage_path', $key)->exists()) {
+            return response()->json([
+                'message' => 'This upload was already finalized.',
+                'errors' => ['audio' => ['This upload was already finalized.']],
+            ], 422);
+        }
+
+        try {
+            if (! $this->storage->exists($key)) {
+                throw new AudioProcessingException(
+                    'The uploaded object is missing.',
+                    'The upload did not reach storage. Please try again.',
+                );
+            }
+
+            $actualSize = $this->storage->size($key);
+
+            if ($actualSize !== (int) $validated['size']) {
+                throw new AudioProcessingException(
+                    'The uploaded object size did not match.',
+                    'The uploaded file was incomplete. Please try again.',
+                );
+            }
+
+            $audioFile = $this->audioFiles->storeFromStorage(
+                $key,
+                (string) $validated['name'],
+                $actualSize,
+                $user,
+            );
+        } catch (AudioProcessingException $exception) {
+            $this->storage->delete($key);
+
+            return response()->json([
+                'message' => $exception->safeMessage(),
+                'errors' => ['audio' => [$exception->safeMessage()]],
+            ], $exception->httpStatus);
+        } catch (Throwable $exception) {
+            $this->storage->delete($key);
+            Log::error('Unexpected direct upload finalization failure', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'This file could not be uploaded.',
+                'errors' => ['audio' => ['This file could not be uploaded.']],
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => ['files' => [$audioFile->toStudioArray()]],
+            'errors' => [],
+            'message' => 'Audio file uploaded successfully.',
+        ], 201);
+    }
+
     public function metadata(AudioFile $audioFile): JsonResponse
     {
         $this->authorize('view', $audioFile);
@@ -118,7 +225,7 @@ class AudioController extends Controller
         ]);
     }
 
-    public function stream(AudioFile $audioFile): BinaryFileResponse
+    public function stream(AudioFile $audioFile): BinaryFileResponse|StreamedResponse
     {
         $this->authorize('stream', $audioFile);
 
@@ -126,14 +233,7 @@ class AudioController extends Controller
             abort(404, 'The audio preview is not available yet.');
         }
 
-        $absolutePath = Storage::disk('local')->path((string) $audioFile->preview_path);
-
-        return response()->file($absolutePath, [
-            'Content-Type' => 'audio/mpeg',
-            'Accept-Ranges' => 'bytes',
-            'Cache-Control' => 'private, max-age=0, must-revalidate',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return $this->storage->streamResponse((string) $audioFile->preview_path, 'audio/mpeg');
     }
 
     private function renderStudio(Request $request, ?AudioFile $selected = null): View
@@ -166,8 +266,14 @@ class AudioController extends Controller
                 'formats' => config('audio.export_formats'),
             ],
             'environment' => $this->ffmpeg->environment(),
+            'upload' => [
+                'direct' => $this->uploads->isConfigured(),
+                'max_mb' => (int) config('audio.max_upload_mb', 100),
+            ],
             'routes' => [
                 'upload' => route('audio.upload'),
+                'uploadPresign' => route('audio.upload.presign'),
+                'uploadComplete' => route('audio.upload.complete'),
                 'clear' => route('audio.clear'),
                 'index' => route('audio.index'),
             ],

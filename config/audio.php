@@ -18,6 +18,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Storage
+    |--------------------------------------------------------------------------
+    |
+    | "local" keeps private audio under storage/app/private. For serverless
+    | deployments use an S3-compatible disk (s3) and enable direct uploads so
+    | the browser can send large files around the function body-size limit.
+    |
+    */
+    'disk' => env('AUDIO_DISK', env('FILESYSTEM_DISK', 'local')),
+    'direct_upload' => (bool) env('AUDIO_DIRECT_UPLOAD', false),
+    'temp_directory' => env('AUDIO_TEMP_DIRECTORY', storage_path('app/private/temporary')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Supported input formats
     |--------------------------------------------------------------------------
     */

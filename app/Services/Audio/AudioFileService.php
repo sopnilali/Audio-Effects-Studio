@@ -10,7 +10,6 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -21,6 +20,7 @@ class AudioFileService
         private readonly AudioPlaybackService $playback,
         private readonly AudioWaveformService $waveform,
         private readonly AudioEffectsService $effects,
+        private readonly AudioStorageService $storage,
     ) {}
 
     public function store(UploadedFile $uploadedFile, User $user): AudioFile
@@ -37,18 +37,54 @@ class AudioFileService
         $uuid = (string) Str::uuid();
         $directory = 'audio/'.$user->id;
         $filename = $uuid.'.'.$extension;
-        $relativePath = $uploadedFile->storeAs($directory, $filename, 'local');
-
-        if (! $relativePath) {
-            throw new AudioProcessingException('Unable to store the uploaded file.', 'The file could not be saved. Please try again.');
-        }
-
-        $absolutePath = Storage::disk('local')->path($relativePath);
+        $relativePath = $this->storage->storeUploadedFile($uploadedFile, $directory, $filename);
 
         try {
-            $probed = $this->metadata->probe($absolutePath);
+            return $this->createFromStoredPath($relativePath, $originalName, (int) $uploadedFile->getSize(), $user, $extension);
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($relativePath);
+            $this->storage->delete($relativePath);
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Finalize a file that was uploaded directly to S3/R2 by the browser.
+     */
+    public function storeFromStorage(string $relativePath, string $originalName, int $fileSize, User $user): AudioFile
+    {
+        try {
+            $extension = $this->extensionFromName($relativePath);
+
+            if (! $this->metadata->isSupportedExtension($extension)) {
+                throw AudioProcessingException::unsupportedFormat($extension);
+            }
+
+            $this->assertQuota($user, $fileSize);
+
+            return $this->createFromStoredPath(
+                $relativePath,
+                $this->sanitizeOriginalName($originalName, $extension),
+                $fileSize,
+                $user,
+                $extension,
+            );
+        } catch (Throwable $exception) {
+            $this->storage->delete($relativePath);
+
+            throw $exception;
+        }
+    }
+
+    private function createFromStoredPath(string $relativePath, string $originalName, int $fileSize, User $user, string $extension): AudioFile
+    {
+        try {
+            $probed = $this->storage->withLocalCopy(
+                $relativePath,
+                fn (string $absolutePath): array => $this->metadata->probe($absolutePath),
+            );
+        } catch (Throwable $exception) {
+            $this->storage->delete($relativePath);
 
             if ($exception instanceof AudioProcessingException) {
                 throw $exception;
@@ -64,7 +100,7 @@ class AudioFileService
             'storage_path' => $relativePath,
             'mime_type' => $probed['mime_type'],
             'extension' => $extension,
-            'file_size' => (int) $uploadedFile->getSize(),
+            'file_size' => $fileSize,
             'duration_seconds' => $probed['duration'],
             'sample_rate' => $probed['sample_rate'],
             'channels' => $probed['channels'],
@@ -88,7 +124,14 @@ class AudioFileService
                 'status' => AudioProcessingJob::STATUS_PENDING,
             ]);
 
-            ProcessAudioJob::dispatch($job->id);
+            try {
+                ProcessAudioJob::dispatch($job->id);
+            } catch (Throwable $exception) {
+                $this->deleteStoredFiles($audioFile);
+                $audioFile->forceDelete();
+
+                throw $exception;
+            }
 
             return $audioFile->fresh();
         }
@@ -114,19 +157,23 @@ class AudioFileService
         $audioFile->forceFill(['status' => AudioFile::STATUS_PROCESSING, 'error_message' => null])->save();
 
         $previewRelative = 'previews/'.$audioFile->user_id.'/'.pathinfo($audioFile->storage_path, PATHINFO_FILENAME).'.mp3';
-        $sourceAbsolute = Storage::disk('local')->path($audioFile->storage_path);
 
         try {
-            if (! is_file($sourceAbsolute)) {
-                throw AudioProcessingException::processingFailed('The uploaded file is missing.');
-            }
+            $waveform = $this->storage->withLocalCopy(
+                $audioFile->storage_path,
+                function (string $sourceAbsolute) use ($audioFile, $previewRelative): array {
+                    if (! is_file($sourceAbsolute)) {
+                        throw AudioProcessingException::processingFailed('The uploaded file is missing.');
+                    }
 
-            $this->playback->generatePreview($sourceAbsolute, $previewRelative);
+                    $this->playback->generatePreview($sourceAbsolute, $previewRelative);
 
-            $waveform = $this->waveform->generate(
-                $sourceAbsolute,
-                (float) $audioFile->duration_seconds,
-                (int) config('audio.waveform_peaks', 720),
+                    return $this->waveform->generate(
+                        $sourceAbsolute,
+                        (float) $audioFile->duration_seconds,
+                        (int) config('audio.waveform_peaks', 720),
+                    );
+                },
             );
 
             $audioFile->forceFill([
@@ -179,8 +226,8 @@ class AudioFileService
 
         DB::transaction(function () use ($audioFile): void {
             foreach ($audioFile->processingJobs as $job) {
-                if ($job->output_path && Storage::disk('local')->exists($job->output_path)) {
-                    Storage::disk('local')->delete($job->output_path);
+                if ($job->output_path) {
+                    $this->storage->delete($job->output_path);
                 }
 
                 $job->delete();
@@ -244,11 +291,17 @@ class AudioFileService
 
     public function deleteStoredFiles(AudioFile $audioFile): void
     {
-        foreach (array_filter([$audioFile->storage_path, $audioFile->preview_path]) as $path) {
-            if (Storage::disk('local')->exists($path)) {
-                Storage::disk('local')->delete($path);
-            }
-        }
+        $this->storage->delete(array_filter([$audioFile->storage_path, $audioFile->preview_path]));
+    }
+
+    public function assertCanUpload(User $user, int $incomingBytes): void
+    {
+        $this->assertQuota($user, $incomingBytes);
+    }
+
+    public function extensionFromName(string $name): string
+    {
+        return $this->normalizeExtension(strtolower((string) pathinfo($name, PATHINFO_EXTENSION)));
     }
 
     private function resolveExtension(UploadedFile $uploadedFile): string
@@ -259,6 +312,11 @@ class AudioFileService
             $extension = strtolower((string) $uploadedFile->guessExtension());
         }
 
+        return $this->normalizeExtension($extension);
+    }
+
+    private function normalizeExtension(string $extension): string
+    {
         return match ($extension) {
             'mpga', 'mpeg' => 'mp3',
             'wave' => 'wav',

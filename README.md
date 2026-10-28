@@ -30,6 +30,8 @@ The default **Tape mode** makes speed and pitch move together: slowing a track m
 - [x] Large-upload support through a custom `php artisan serve` command and `public/.user.ini`
 - [x] Delete/clear flows remove source, preview, jobs and exported files
 - [x] Automated feature, unit and real-FFmpeg integration tests
+- [x] Private S3/R2 storage and direct-to-bucket uploads for serverless hosts
+- [x] Vercel Container deployment files (`Dockerfile`, `vercel.json`, `docs/VERCEL.md`)
 - [x] Deployment, dependency/license, limitations and checklist documentation
 
 ### Not included
@@ -39,7 +41,6 @@ The default **Tape mode** makes speed and pitch move together: slowing a track m
 - [ ] User-uploaded reverb impulse responses
 - [ ] Formant-preserving pitch shifting
 - [ ] OAuth / social login and email verification
-- [ ] Cloud object storage (S3, R2, etc.)
 - [ ] Real-time collaborative editing
 - [ ] Mobile native applications
 
@@ -49,7 +50,7 @@ The default **Tape mode** makes speed and pitch move together: slowing a track m
 
 | Layer | Technology |
 | --- | --- |
-| Backend | PHP 8.2+ (tested on PHP 8.5), Laravel 12.70 |
+| Backend | PHP 8.3+ (tested on PHP 8.5), Laravel 12.70 |
 | Frontend | Blade, Bootstrap 5.3, vanilla ES6 modules, Vite 7 |
 | Audio UI | WaveSurfer.js 7, Web Audio API, AudioWorklet |
 | Audio engine | FFmpeg / FFprobe via Symfony Process |
@@ -61,7 +62,7 @@ The default **Tape mode** makes speed and pitch move together: slowing a track m
 
 ## Requirements
 
-- PHP **8.2+** with `pdo_mysql` or `pdo_sqlite`, `fileinfo`, `mbstring`, `openssl`
+- PHP **8.3+** with `pdo_mysql` or `pdo_sqlite`, `fileinfo`, `mbstring`, `openssl`
 - Composer 2
 - Node.js **20+** and npm
 - FFmpeg and FFprobe **6+** with the `libmp3lame` encoder
@@ -350,7 +351,7 @@ Static formatting:
 vendor/bin/pint
 ```
 
-The current local suite passes: **68 tests, 314 assertions** (numbers may grow as tests are added).
+The current local suite passes: **74 tests, 349 assertions** (numbers may grow as tests are added).
 
 ---
 
@@ -444,9 +445,16 @@ docs/                        deployment, dependencies, limitations, checklist
 
 ---
 
+## Vercel
+
+The repository includes a Vercel Container setup: `Dockerfile`, `docker/`, `vercel.json`, `.env.vercel.example`, and [docs/VERCEL.md](docs/VERCEL.md). Vercel needs external MySQL and a private S3/R2 bucket; direct browser uploads are enabled with `AUDIO_DIRECT_UPLOAD=true` because Vercel limits request bodies to 4.5 MB. The default Vercel profile processes small files synchronously and has no persistent local disk or queue worker. Read the Vercel guide before deploying.
+
+---
+
 ## Documentation
 
 - [Deployment guide](docs/DEPLOYMENT.md)
+- [Vercel deployment guide](docs/VERCEL.md)
 - [Dependencies and licenses](docs/DEPENDENCIES.md)
 - [Known limitations](docs/KNOWN_LIMITATIONS.md)
 - [Completed/uncompleted checklist](docs/CHECKLIST.md)
@@ -458,7 +466,8 @@ docs/                        deployment, dependencies, limitations, checklist
 | Symptom | Fix |
 | --- | --- |
 | Large upload returns `422` immediately | PHP `upload_max_filesize`/`post_max_size` are too low. Use `php artisan serve`, or set the values in `php.ini`/PHP-FPM and restart. |
-| Upload returns `413 Request Entity Too Large` | Raise Nginx `client_max_body_size` / Apache `LimitRequestBody`. |
+| Upload returns `413 Request Entity Too Large` | Raise Nginx `client_max_body_size` / Apache `LimitRequestBody`. On Vercel, enable direct S3/R2 uploads; the platform body limit is 4.5 MB. |
+| Direct S3/R2 upload fails in the browser | Check bucket CORS allows `PUT` from the app origin and that `AUDIO_DIRECT_UPLOAD=true`, `AUDIO_DISK=s3`, and the AWS credentials are set. |
 | Upload succeeds but stays `processing` | Start a queue worker: `php artisan queue:work --tries=1`. |
 | Export stays `pending` | Start the queue worker, or set `AUDIO_SYNC_EXPORTS=true` for a local demo. |
 | Export says FFmpeg unavailable | Run `php artisan audio:check`; set `FFMPEG_PATH`/`FFPROBE_PATH` to absolute paths. |

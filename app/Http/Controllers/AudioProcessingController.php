@@ -7,6 +7,7 @@ use App\Models\AudioProcessingJob;
 use App\Services\Audio\AudioExportService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AudioProcessingController extends Controller
 {
@@ -30,7 +31,7 @@ class AudioProcessingController extends Controller
         ]);
     }
 
-    public function download(AudioProcessingJob $job): BinaryFileResponse|JsonResponse
+    public function download(AudioProcessingJob $job): BinaryFileResponse|StreamedResponse|JsonResponse
     {
         $this->authorize('download', $job);
 

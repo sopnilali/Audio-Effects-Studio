@@ -7,10 +7,9 @@ use App\Jobs\ExportAudioJob;
 use App\Models\AudioFile;
 use App\Models\AudioProcessingJob;
 use App\Models\User;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AudioExportService
 {
@@ -18,6 +17,7 @@ class AudioExportService
         private readonly AudioProcessingService $processing,
         private readonly AudioEffectsService $effects,
         private readonly FfmpegRunner $ffmpeg,
+        private readonly AudioStorageService $storage,
     ) {}
 
     /**
@@ -85,8 +85,6 @@ class AudioExportService
         }
 
         $outputRelativePath = 'exports/'.$user->id.'/'.Str::uuid().'.'.$format;
-        $outputAbsolutePath = Storage::disk('local')->path($outputRelativePath);
-        File::ensureDirectoryExists(dirname($outputAbsolutePath));
 
         $job = AudioProcessingJob::create([
             'audio_file_id' => $audioFile->id,
@@ -155,7 +153,7 @@ class AudioExportService
         return $job->fresh();
     }
 
-    public function downloadResponse(AudioProcessingJob $job): BinaryFileResponse
+    public function downloadResponse(AudioProcessingJob $job): BinaryFileResponse|StreamedResponse
     {
         if (! $job->isCompleted() || ! $job->outputExists()) {
             throw new AudioProcessingException(
@@ -164,14 +162,9 @@ class AudioExportService
             );
         }
 
-        $absolutePath = Storage::disk('local')->path((string) $job->output_path);
         $mime = $job->format === 'mp3' ? 'audio/mpeg' : 'audio/wav';
 
-        return response()->download($absolutePath, $job->downloadName(), [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'private, no-store, max-age=0',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return $this->storage->downloadResponse((string) $job->output_path, $job->downloadName(), $mime);
     }
 
     public function cleanupExpired(): array
@@ -191,8 +184,8 @@ class AudioExportService
             ->orderBy('id')
             ->chunkById(100, function ($jobs) use (&$deletedJobs, &$deletedFiles): void {
                 foreach ($jobs as $job) {
-                    if ($job->output_path && Storage::disk('local')->exists($job->output_path)) {
-                        Storage::disk('local')->delete($job->output_path);
+                    if ($job->output_path && $this->storage->exists($job->output_path)) {
+                        $this->storage->delete($job->output_path);
                         $deletedFiles++;
                     }
 
@@ -201,7 +194,7 @@ class AudioExportService
                 }
             });
 
-        $temporaryDirectory = storage_path('app/private/temporary');
+        $temporaryDirectory = (string) config('audio.temp_directory', storage_path('app/private/temporary'));
         $tempCutoff = now()->subHours(max(1, (int) config('audio.temp_retention_hours', 24)))->getTimestamp();
 
         if (is_dir($temporaryDirectory)) {

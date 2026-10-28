@@ -67,6 +67,9 @@ export class StudioApp {
         this.uploads = new UploadManager({
             input: document.getElementById('audioFileInput'),
             uploadUrl: this.data.routes?.upload ?? '/audio/upload',
+            presignUrl: this.data.routes?.uploadPresign ?? '/audio/upload/presign',
+            completeUrl: this.data.routes?.uploadComplete ?? '/audio/upload/complete',
+            directUpload: Boolean(this.data.upload?.direct),
             maxUploadMb: this.limits.max_upload_mb ?? 100,
             maxFiles: this.limits.max_files ?? 10,
             callbacks: {
@@ -1118,6 +1121,10 @@ export class StudioApp {
         const normalized = (files ?? []).map((file) => this.normalizeFile(file));
 
         if (normalized.length === 0) {
+            (errors ?? []).forEach((error) => {
+                showToast(error?.message ?? String(error), 'error', 7000);
+            });
+
             if (message) {
                 showToast(message, 'error');
             }

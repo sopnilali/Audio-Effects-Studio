@@ -9,7 +9,11 @@ This project is a Laravel application. The exact resolved versions are pinned in
 | PHP | 8.5.10 (tested) | Runtime | PHP License 3.01 |
 | Laravel Framework | 12.70.2 | Application framework | MIT |
 | Symfony Process | Laravel dependency | Shell-free FFmpeg execution | MIT |
+| Flysystem AWS S3 adapter | 3.35.3 | Private S3/R2 storage for serverless deployments | MIT |
+| AWS SDK for PHP | 3.402.2 | Presigned direct-to-bucket uploads | Apache-2.0 |
 | Composer | 2.10.3 | PHP dependency manager | MIT |
+
+The application requires PHP 8.3 or newer. Composer is pinned to a PHP 8.3 platform so the lock file stays installable on the Vercel container. The local development machine used PHP 8.5.
 
 Install with:
 
@@ -46,6 +50,8 @@ npm run build
 | FFmpeg | 8.1.1 | Decoding, resampling, effects, encoding | FFmpeg is LGPL 2.1+ by default. Builds with `--enable-gpl` and GPL-only components are GPL. Check your exact build. |
 | FFprobe | 8.1.1 | Media metadata probing | Same FFmpeg license as the build |
 | libmp3lame | bundled in local FFmpeg build | MP3 encoding | LGPL 2.0 |
+| Nginx | Debian bookworm package | HTTP server in the Vercel container | BSD-2-Clause |
+| PHP-FPM | Debian PHP image | Application server in the Vercel container | PHP License 3.01 |
 
 The application calls FFmpeg as an external program. It does not link FFmpeg into PHP. Confirm the license of the FFmpeg binary you deploy, especially if you distribute a modified build or enable GPL-only filters.
 

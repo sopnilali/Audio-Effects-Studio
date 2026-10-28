@@ -79,34 +79,6 @@
         <i class="fa-regular fa-keyboard" aria-hidden="true"></i>
     </button>
 
-    <div class="dropdown topbar-user">
-        <button class="user-menu dropdown-toggle"
-                type="button"
-                data-bs-toggle="dropdown"
-                data-bs-strategy="fixed"
-                aria-expanded="false"
-                aria-label="Account menu">
-            <span class="user-avatar" aria-hidden="true">{{ $studio['user']['initials'] }}</span>
-            <span class="user-name">{{ $studio['user']['name'] }}</span>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-            <li>
-                <span class="dropdown-item-text small text-studio-muted">
-                    Signed in as<br><span class="text-white">{{ $studio['user']['email'] }}</span>
-                </span>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="dropdown-item" type="submit">
-                        <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Sign out
-                    </button>
-                </form>
-            </li>
-        </ul>
-    </div>
-
     <input type="file"
            id="audioFileInput"
            class="d-none"

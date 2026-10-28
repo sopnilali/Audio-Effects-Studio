@@ -23,10 +23,8 @@ These are intentional scope boundaries, not hidden bugs. They are listed so oper
 
 ## Accounts and product scope
 
-- **No email verification.** Registration creates an immediately usable account.
-- **No password reset UI in this build.** Laravel's password broker is available, but the product UI focuses on the studio.
-- **No OAuth/social login.**
-- **No sharing or public links.** Every file is private to its owner.
+- **Single-user mode.** The studio opens directly; there is no login, registration, password reset, or account switching.
+- **No sharing or public links.** Files are owned by the hidden studio account and served through controller routes.
 - **No collaboration or real-time multi-user editing.**
 - **No mobile native app.** The responsive Blade UI works in modern mobile browsers.
 

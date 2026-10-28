@@ -18,6 +18,44 @@ provide external services.
 4. Bucket CORS configured for browser uploads.
 5. The environment variables from `.env.vercel.example`.
 
+## Temporary demo mode (SQLite + `/tmp`)
+
+If you only need to preview the application, you can skip the external database
+and bucket. The container entrypoint creates a SQLite file under `/tmp`, runs
+the migrations, and optionally seeds the demo account. Local audio storage also
+uses `/tmp`.
+
+```dotenv
+APP_URL=https://your-project.vercel.app
+DB_CONNECTION=sqlite
+DB_DATABASE=/tmp/laravel/database.sqlite
+SESSION_DRIVER=file
+CACHE_STORE=file
+FILESYSTEM_DISK=local
+AUDIO_DISK=local
+AUDIO_DIRECT_UPLOAD=false
+AUDIO_MAX_UPLOAD_MB=4
+AUDIO_LARGE_UPLOAD_THRESHOLD_MB=3
+AUDIO_STORAGE_QUOTA_MB=512
+AUDIO_MAX_DURATION_SECONDS=600
+QUEUE_CONNECTION=sync
+AUDIO_SYNC_EXPORTS=true
+RUN_MIGRATIONS=true
+```
+
+The studio opens directly; there is no login or registration flow.
+
+This mode is intentionally ephemeral:
+
+- The SQLite database and uploaded audio disappear whenever the container is
+  replaced, redeployed, or scaled to another instance.
+- The upload cap is 4 MB because Vercel limits normal request bodies to 4.5 MB.
+- `RUN_MIGRATIONS=true` must stay enabled because each new container starts with
+  an empty `/tmp`.
+- Do not use this mode for real user data.
+
+For persistent data, continue with the MySQL and S3/R2 setup below.
+
 ## Why external storage is required
 
 Vercel Functions and Containers have a read-only filesystem except for `/tmp`.
@@ -108,7 +146,7 @@ policy (replace the origin with your production URL and preview domains):
 
 If you use Vercel preview deployments, add their origins or use a suitable
 wildcard policy for testing. Keep the bucket private; previews and downloads are
-streamed through Laravel after authorization.
+streamed through Laravel after ownership checks.
 
 ## 3. Set Vercel environment variables
 
@@ -194,7 +232,7 @@ After the first successful migration, set `RUN_MIGRATIONS=false` and redeploy.
 
 After deployment:
 
-1. Register or sign in.
+1. Open the studio directly; no login is required.
 2. Upload a small MP3/WAV.
 3. Confirm the waveform and preview appear.
 4. Apply **Pure Reverb**, **Slowed + Reverb**, and **Nightcore**.

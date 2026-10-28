@@ -10,7 +10,7 @@ The default **Tape mode** makes speed and pitch move together: slowing a track m
 
 ### Completed
 
-- [x] Laravel 12 application with authentication (register, login, logout)
+- [x] Laravel 12 application with a single-user studio mode (no login or registration)
 - [x] Private per-user audio library with ownership policies
 - [x] Drag-and-drop and multi-file upload
 - [x] Bengali, Arabic, and other Unicode filenames preserved in the UI and downloads
@@ -40,7 +40,7 @@ The default **Tape mode** makes speed and pitch move together: slowing a track m
 - [ ] Recording from a microphone
 - [ ] User-uploaded reverb impulse responses
 - [ ] Formant-preserving pitch shifting
-- [ ] OAuth / social login and email verification
+- [ ] Multi-user accounts and sharing
 - [ ] Real-time collaborative editing
 - [ ] Mobile native applications
 
@@ -116,12 +116,8 @@ php artisan serve
 php artisan queue:work --tries=1
 ```
 
-Open <http://localhost:8000>. The seeded demo account is:
-
-```text
-demo@audio.test
-password
-```
+Open <http://localhost:8000>. The studio opens directly; there is no login or
+registration step.
 
 > `php artisan serve` is overridden by `App\Console\Commands\ServeCommand`. It starts PHP with `upload_max_filesize=100M`, `post_max_size=110M`, `memory_limit=512M`, `max_execution_time=900` and `max_input_time=900`, derived from `AUDIO_MAX_UPLOAD_MB`.
 
@@ -304,8 +300,8 @@ The browser polls `audio.processing.status`; completed jobs expose a protected d
 
 ## Security model
 
-- All studio and processing routes require authentication.
-- `AudioFilePolicy` and `AudioProcessingJobPolicy` enforce per-user ownership.
+- The studio runs in single-user mode; a hidden studio account owns the library.
+- `AudioFilePolicy` and `AudioProcessingJobPolicy` still enforce ownership as defense in depth.
 - Original files, previews, impulses and exports live on the **private** local disk, not `public/`.
 - Downloads are served through authorized controllers with `X-Content-Type-Options: nosniff`.
 - Every state-changing request uses CSRF protection.
@@ -331,7 +327,7 @@ composer test
 
 The suite contains:
 
-- Authentication and authorization tests
+- Single-user access and ownership tests
 - Upload validation, Bengali filenames, size/duration/quota limits
 - Real waveform and preview generation
 - Effect validation, clamping, preset detection and tape-mode filter graphs
@@ -351,7 +347,7 @@ Static formatting:
 vendor/bin/pint
 ```
 
-The current local suite passes: **74 tests, 349 assertions** (numbers may grow as tests are added).
+The current local suite passes: **73 tests, 338 assertions** (numbers may grow as tests are added).
 
 ---
 
@@ -447,7 +443,7 @@ docs/                        deployment, dependencies, limitations, checklist
 
 ## Vercel
 
-The repository includes a Vercel Container setup: `Dockerfile`, `docker/`, `vercel.json`, `.env.vercel.example`, and [docs/VERCEL.md](docs/VERCEL.md). Vercel needs external MySQL and a private S3/R2 bucket; direct browser uploads are enabled with `AUDIO_DIRECT_UPLOAD=true` because Vercel limits request bodies to 4.5 MB. The default Vercel profile processes small files synchronously and has no persistent local disk or queue worker. Read the Vercel guide before deploying.
+The repository includes a Vercel Container setup: `Dockerfile`, `docker/`, `vercel.json`, `.env.vercel.example`, and [docs/VERCEL.md](docs/VERCEL.md). For persistent data, Vercel needs external MySQL/Postgres and a private S3/R2 bucket; direct browser uploads are enabled with `AUDIO_DIRECT_UPLOAD=true` because Vercel limits request bodies to 4.5 MB. A temporary SQLite + `/tmp` local-storage mode is also available for demos, but its data disappears on every restart. The default Vercel profile processes small files synchronously and has no persistent local disk or queue worker. Read the Vercel guide before deploying.
 
 ---
 

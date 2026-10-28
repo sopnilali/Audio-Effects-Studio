@@ -63,10 +63,12 @@ class AudioProcessingService
             throw AudioProcessingException::exportFailed('The reverb filter is unavailable on this server.');
         }
 
+        $supportsIrnorm = (bool) ($environment['afir_irnorm'] ?? false);
+
         try {
             return $this->storage->withLocalCopy(
                 $audioFile->storage_path,
-                function (string $sourcePath) use ($job, $audioFile, $outputRelativePath, $format, $settings): string {
+                function (string $sourcePath) use ($job, $audioFile, $outputRelativePath, $format, $settings, $supportsIrnorm): string {
                     $outputPath = $this->storage->temporaryPath($format);
 
                     try {
@@ -84,7 +86,7 @@ class AudioProcessingService
                         }
 
                         $withReverb = $settings['reverb'] > 0;
-                        $graph = $this->effects->buildFilterGraph($settings, $sourceMetadata, $withReverb);
+                        $graph = $this->effects->buildFilterGraph($settings, $sourceMetadata, $withReverb, $supportsIrnorm);
                         $expectedDuration = max(0.1, ((float) ($audioFile->duration_seconds ?? 0)) / $settings['speed']);
 
                         $arguments = [

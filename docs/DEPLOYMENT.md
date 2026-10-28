@@ -102,7 +102,7 @@ sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
 sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
 ```
 
-Do **not** create a public symlink to `storage/app/private`. The source audio, previews, exports and impulse responses must remain private and are streamed/downloaded through authenticated routes.
+Do **not** create a public symlink to `storage/app/private`. The source audio, previews, exports and impulse responses must remain private and are streamed/downloaded through controller routes with ownership checks.
 
 If SELinux is enabled, apply the appropriate context to `storage` and `bootstrap/cache`.
 
@@ -226,12 +226,12 @@ The scheduled cleanup removes expired temporary files, old exports and stale pro
 php artisan audio:check
 php artisan about
 php artisan route:list --path=audio
-curl -I https://audio.example.com/login
+curl -I https://audio.example.com/audio
 ```
 
 Functional checks:
 
-1. Register a new account.
+1. Open the studio directly; no login is required.
 2. Upload a small WAV or MP3 and confirm the waveform and preview appear.
 3. Upload a file larger than 25 MB and confirm it moves from `processing` to `ready`.
 4. Apply **Slowed + Reverb** and export WAV/MP3.

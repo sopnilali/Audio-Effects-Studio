@@ -154,7 +154,7 @@ class FfmpegRunner
     }
 
     /**
-     * @return array{ok: bool, ffmpeg: bool, ffprobe: bool, mp3_encoder: bool, filters: list<string>, version: ?string, errors: list<string>}
+     * @return array{ok: bool, ffmpeg: bool, ffprobe: bool, mp3_encoder: bool, filters: list<string>, afir_irnorm: bool, version: ?string, errors: list<string>}
      */
     public function environment(): array
     {
@@ -165,6 +165,7 @@ class FfmpegRunner
                 'ffprobe' => false,
                 'mp3_encoder' => false,
                 'filters' => [],
+                'afir_irnorm' => false,
                 'version' => null,
                 'errors' => [],
             ];
@@ -199,6 +200,11 @@ class FfmpegRunner
 
                     $encoders = $this->run([$this->ffmpegPath, '-hide_banner', '-encoders'], 30);
                     $result['mp3_encoder'] = (bool) preg_match('/libmp3lame/', $encoders['stdout']);
+
+                    if (in_array('afir', $result['filters'], true)) {
+                        $afir = $this->run([$this->ffmpegPath, '-hide_banner', '-h', 'filter=afir'], 15);
+                        $result['afir_irnorm'] = str_contains($afir['stdout'].$afir['stderr'], 'irnorm');
+                    }
 
                     if (! in_array('afir', $result['filters'], true)) {
                         $result['errors'][] = 'The FFmpeg afir filter is missing; reverb export is unavailable.';

@@ -277,11 +277,6 @@ class AudioController extends Controller
                 'clear' => route('audio.clear'),
                 'index' => route('audio.index'),
             ],
-            'user' => [
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'initials' => $this->initials($request->user()->name),
-            ],
         ];
 
         return view('audio.index', [
@@ -289,18 +284,6 @@ class AudioController extends Controller
             'selectedFile' => $selected,
             'studio' => $studio,
         ]);
-    }
-
-    private function initials(string $name): string
-    {
-        $parts = preg_split('/\s+/u', trim($name)) ?: [];
-        $initials = '';
-
-        foreach (array_slice($parts, 0, 2) as $part) {
-            $initials .= mb_strtoupper(mb_substr($part, 0, 1));
-        }
-
-        return $initials !== '' ? $initials : 'A';
     }
 
     /**

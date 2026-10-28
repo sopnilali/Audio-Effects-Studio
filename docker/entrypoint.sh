@@ -10,6 +10,20 @@ mkdir -p \
     /tmp/laravel/storage/app/private/audio/impulse \
     /tmp/laravel/bootstrap/cache
 
+# Temporary demo mode: SQLite on the writable /tmp volume. This keeps the
+# container bootable without an external database, but all data is lost when
+# the container is replaced. Production deployments should use MySQL/Postgres.
+if [ "${DB_CONNECTION:-}" = "sqlite" ] && [ -n "${DB_DATABASE:-}" ]; then
+    case "$DB_DATABASE" in
+        :memory:*|*"mode=memory"*) ;;
+        *)
+            mkdir -p "$(dirname "$DB_DATABASE")"
+            touch "$DB_DATABASE"
+            chown www-data:www-data "$DB_DATABASE"
+            ;;
+    esac
+fi
+
 chown -R www-data:www-data /tmp/laravel
 
 if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then

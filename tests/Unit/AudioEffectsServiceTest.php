@@ -174,6 +174,19 @@ class AudioEffectsServiceTest extends TestCase
         $this->assertStringContainsString('gtype=none:irnorm=0', $graph['filter_complex']);
     }
 
+    public function test_reverb_graph_omits_irnorm_for_older_ffmpeg_builds(): void
+    {
+        $graph = $this->effects->buildFilterGraph(
+            ['speed' => 1, 'pitch_enabled' => false, 'reverb' => 40, 'bass_boost' => 0],
+            ['sample_rate' => 44100, 'channels' => 1],
+            true,
+            false,
+        );
+
+        $this->assertStringContainsString('gtype=none:maxir=5', $graph['filter_complex']);
+        $this->assertStringNotContainsString('irnorm', $graph['filter_complex']);
+    }
+
     public function test_bass_boost_maps_percentage_to_db(): void
     {
         $graph = $this->effects->buildFilterGraph(

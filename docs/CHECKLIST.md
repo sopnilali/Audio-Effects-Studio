@@ -3,8 +3,8 @@
 ## Core application
 
 - [x] Laravel 12 project scaffolded and configured
-- [x] Authentication: register, login, logout, session handling
-- [x] Per-user private audio library
+- [x] Single-user studio mode with no login or registration
+- [x] Private single-user audio library
 - [x] Ownership policies for files and processing jobs
 - [x] Blade studio layout matching the purple reference design
 - [x] Responsive mobile/desktop layout
@@ -90,7 +90,7 @@
 - [x] CSRF/session/database queue configuration documented
 - [x] Error handling and user-safe failure messages
 - [x] Real FFmpeg integration tests
-- [x] Feature tests for upload, auth, effects, exports, deletion and ownership
+- [x] Feature tests for upload, single-user access, effects, exports, deletion and ownership
 - [x] Unit tests for normalization, filter graphs, model state and Unicode names
 - [x] `php artisan audio:check` environment command
 
@@ -111,7 +111,7 @@
 - [ ] Microphone recording
 - [ ] Custom reverb impulse uploads
 - [ ] Formant-preserving pitch shifting
-- [ ] OAuth/social login and email verification
+- [ ] Multi-user accounts and sharing
 - [ ] Public share links
 - [ ] WebSocket progress streaming
 - [ ] Native mobile apps

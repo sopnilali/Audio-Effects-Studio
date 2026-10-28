@@ -329,44 +329,6 @@ textarea {
     box-shadow: 0 0 0 4px rgba(99, 230, 190, 0.12);
 }
 
-.user-menu {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.32rem 0.4rem 0.32rem 0.34rem;
-    border-radius: 999px;
-    border: 1px solid var(--studio-border);
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-}
-
-.user-menu:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-.user-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #d46be0, #8e24aa);
-    color: #2b002f;
-    font-size: 0.72rem;
-    font-weight: 800;
-}
-
-.user-name {
-    max-width: 130px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.78rem;
-    font-weight: 600;
-}
-
 .mobile-view-toggle {
     display: none;
     padding: 4px;
@@ -2214,10 +2176,10 @@ textarea {
 
     .topbar {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas:
-            "brand toggle user"
-            "actions actions actions";
+            "brand toggle"
+            "actions actions";
         align-items: center;
         gap: 0.55rem 0.7rem;
         padding: 0.65rem 0.8rem;
@@ -2260,11 +2222,6 @@ textarea {
         padding-inline: 0.55rem;
     }
 
-    .topbar-user {
-        grid-area: user;
-        justify-self: end;
-    }
-
     .topbar-spacer,
     .topbar-status,
     .topbar-divider {
@@ -2272,7 +2229,6 @@ textarea {
     }
 
     .brand-subtitle { display: none; }
-    .user-name { display: none; }
 
     .file-panel-scroll { padding: 1rem 0.9rem calc(var(--player-height) + 1.2rem); }
     .editor-panel { padding: 1rem 0.9rem calc(var(--player-height) + 1.5rem); }
@@ -2294,10 +2250,6 @@ textarea {
     .player-progress { display: none; }
     .player-right { width: auto; flex: 0 0 auto; }
     .volume-control { display: none; }
-
-    .auth-shell { grid-template-columns: 1fr; }
-    .auth-showcase { display: none; }
-    .auth-panel { min-height: 100vh; }
 }
 
 @media (max-width: 575.98px) {
@@ -2327,8 +2279,6 @@ textarea {
     }
 
     .topbar-actions .btn i { margin-right: 0.3rem !important; }
-
-    .user-menu { padding: 0.25rem 0.3rem 0.25rem 0.25rem; }
 
     .preset-grid { grid-template-columns: 1fr; }
     .preset-card { min-height: 0; flex-direction: row; align-items: center; }

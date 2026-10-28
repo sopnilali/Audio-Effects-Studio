@@ -59,7 +59,7 @@ class AudioEffectsService
      * @param  array<string, mixed>  $metadata
      * @return array{filter_complex: string, output_rate: int, output_channels: int, tempo: float, pitch: float, pitch_applied: bool}
      */
-    public function buildFilterGraph(array $settings, array $metadata, bool $withReverb): array
+    public function buildFilterGraph(array $settings, array $metadata, bool $withReverb, bool $supportsIrnorm = true): array
     {
         $settings = $this->normalize($settings);
 
@@ -112,10 +112,11 @@ class AudioEffectsService
             $wetGain = round(0.9 * $wetAmount, 3);
 
             $layout = $channels === 1 ? 'mono' : 'stereo';
+            $irnorm = $supportsIrnorm ? ':irnorm=0' : '';
 
             $filterComplex = '[0:a]'.implode(',', $chain).'[main];'
                 .'[1:a]aresample='.$sampleRate.',aformat=channel_layouts='.$layout.'[ir];'
-                .'[main][ir]afir=dry='.$dryGain.':wet='.$wetGain.':gtype=none:irnorm=0:maxir=5,'
+                .'[main][ir]afir=dry='.$dryGain.':wet='.$wetGain.':gtype=none'.$irnorm.':maxir=5,'
                 .$limiter.'[out]';
         } else {
             $filterComplex = '[0:a]'.implode(',', $chain).'[main];'

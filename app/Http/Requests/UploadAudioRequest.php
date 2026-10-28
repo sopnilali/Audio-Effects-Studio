@@ -18,7 +18,7 @@ class UploadAudioRequest extends FormRequest
      */
     public function rules(): array
     {
-        $maxKilobytes = max(1, (int) config('audio.max_upload_mb', 100)) * 1024;
+        $maxKilobytes = max(1, (int) config('audio.max_upload_mb', 10)) * 1024;
         $maxFiles = max(1, (int) config('audio.max_files_per_upload', 10));
         $extensions = implode(',', config('audio.supported_extensions', []));
 
@@ -35,7 +35,7 @@ class UploadAudioRequest extends FormRequest
             'files.array' => 'The upload must contain a list of audio files.',
             'files.max' => 'You can upload at most :max files at once.',
             'files.*.file' => 'One of the uploads was not a valid file.',
-            'files.*.max' => 'Each audio file must be smaller than '.(int) config('audio.max_upload_mb', 100).' MB.',
+            'files.*.max' => 'Each audio file must be smaller than '.(int) config('audio.max_upload_mb', 10).' MB.',
             'files.*.mimes' => 'Only MP3, WAV, OGG, M4A, AAC and FLAC files are supported.',
         ];
     }
@@ -76,7 +76,7 @@ class UploadAudioRequest extends FormRequest
                         );
                     }
 
-                    if ((int) $file->getSize() > (int) config('audio.max_upload_mb', 100) * 1024 * 1024) {
+                    if ((int) $file->getSize() > (int) config('audio.max_upload_mb', 10) * 1024 * 1024) {
                         $validator->errors()->add(
                             "files.{$index}",
                             'The file "'.$file->getClientOriginalName().'" exceeds the maximum upload size.',

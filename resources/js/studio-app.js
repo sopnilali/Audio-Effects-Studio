@@ -70,7 +70,7 @@ export class StudioApp {
             presignUrl: this.data.routes?.uploadPresign ?? '/audio/upload/presign',
             completeUrl: this.data.routes?.uploadComplete ?? '/audio/upload/complete',
             directUpload: Boolean(this.data.upload?.direct),
-            maxUploadMb: this.limits.max_upload_mb ?? 100,
+            maxUploadMb: this.limits.max_upload_mb ?? 10,
             maxFiles: this.limits.max_files ?? 10,
             callbacks: {
                 onUploaded: (files, errors, message) => this.handleUploaded(files, errors, message),

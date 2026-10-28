@@ -63,7 +63,7 @@ FILESYSTEM_DISK=local
 FFMPEG_PATH=/usr/bin/ffmpeg
 FFPROBE_PATH=/usr/bin/ffprobe
 
-AUDIO_MAX_UPLOAD_MB=100
+AUDIO_MAX_UPLOAD_MB=10
 AUDIO_MAX_FILES_PER_UPLOAD=10
 AUDIO_MAX_FILES_PER_USER=100
 AUDIO_STORAGE_QUOTA_MB=2048
@@ -113,8 +113,8 @@ If SELinux is enabled, apply the appropriate context to `storage` and `bootstrap
 Edit the pool configuration, for example `/etc/php/8.3/fpm/pool.d/www.conf`, or a dedicated `php.ini` for FPM:
 
 ```ini
-upload_max_filesize = 100M
-post_max_size = 110M
+upload_max_filesize = 10M
+post_max_size = 20M
 memory_limit = 512M
 max_execution_time = 900
 max_input_time = 900
@@ -140,7 +140,7 @@ server {
     root /var/www/audio-studio/public;
     index index.php;
 
-    client_max_body_size 110m;
+    client_max_body_size 20m;
 
     add_header X-Frame-Options "SAMEORIGIN";
     add_header X-Content-Type-Options "nosniff";

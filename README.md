@@ -119,7 +119,7 @@ php artisan queue:work --tries=1
 Open <http://localhost:8000>. The studio opens directly; there is no login or
 registration step.
 
-> `php artisan serve` is overridden by `App\Console\Commands\ServeCommand`. It starts PHP with `upload_max_filesize=100M`, `post_max_size=110M`, `memory_limit=512M`, `max_execution_time=900` and `max_input_time=900`, derived from `AUDIO_MAX_UPLOAD_MB`.
+> `php artisan serve` is overridden by `App\Console\Commands\ServeCommand`. It starts PHP with `upload_max_filesize=10M`, `post_max_size=20M`, `memory_limit=512M`, `max_execution_time=900` and `max_input_time=900`, derived from `AUDIO_MAX_UPLOAD_MB`.
 
 ---
 
@@ -208,8 +208,8 @@ This project handles that in three layers:
 1. **`php artisan serve`** — the custom serve command injects:
 
    ```text
-   upload_max_filesize=100M
-   post_max_size=110M
+   upload_max_filesize=10M
+   post_max_size=20M
    memory_limit=512M
    max_execution_time=900
    max_input_time=900
@@ -220,8 +220,8 @@ This project handles that in three layers:
 2. **`public/.user.ini`** — for PHP-FPM/Apache deployments:
 
    ```ini
-   upload_max_filesize = 100M
-   post_max_size = 110M
+   upload_max_filesize = 10M
+   post_max_size = 20M
    memory_limit = 512M
    max_execution_time = 900
    max_input_time = 900
@@ -232,7 +232,7 @@ This project handles that in three layers:
 3. **Web server body limit** — for Nginx:
 
    ```nginx
-   client_max_body_size 110m;
+   client_max_body_size 20m;
    ```
 
    For Apache, ensure `LimitRequestBody` is not lower than the upload limit.
@@ -242,8 +242,8 @@ After changing PHP-FPM or `php.ini`, restart PHP-FPM. After changing queue code,
 If you start PHP manually, pass the same flags:
 
 ```bash
-php -d upload_max_filesize=100M \
-    -d post_max_size=110M \
+php -d upload_max_filesize=10M \
+    -d post_max_size=20M \
     -d memory_limit=512M \
     -d max_execution_time=900 \
     -d max_input_time=900 \
@@ -253,7 +253,7 @@ php -d upload_max_filesize=100M \
 Upload limits are configured in `.env`:
 
 ```dotenv
-AUDIO_MAX_UPLOAD_MB=100
+AUDIO_MAX_UPLOAD_MB=10
 AUDIO_MAX_FILES_PER_UPLOAD=10
 AUDIO_MAX_FILES_PER_USER=100
 AUDIO_STORAGE_QUOTA_MB=2048

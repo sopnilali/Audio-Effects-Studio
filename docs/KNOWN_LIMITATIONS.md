@@ -14,7 +14,7 @@ These are intentional scope boundaries, not hidden bugs. They are listed so oper
 
 ## Uploads and files
 
-- **100 MB / 30 minutes by default.** Limits are configurable but must stay aligned with PHP and web-server limits.
+- **10 MB / 30 minutes by default.** Limits are configurable but must stay aligned with PHP and web-server limits.
 - **Queue required for large files.** Files above `AUDIO_LARGE_UPLOAD_THRESHOLD_MB` stay in `processing` until a worker runs. The Vercel demo profile uses synchronous processing instead.
 - **Local or S3-compatible storage.** Local private disk is the default. Serverless deployments must use `AUDIO_DISK=s3` and `AUDIO_DIRECT_UPLOAD=true`.
 - **No resumable uploads.** A dropped connection restarts the upload.

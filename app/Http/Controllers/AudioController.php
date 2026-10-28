@@ -268,7 +268,7 @@ class AudioController extends Controller
             'environment' => $this->ffmpeg->environment(),
             'upload' => [
                 'direct' => $this->uploads->isConfigured(),
-                'max_mb' => (int) config('audio.max_upload_mb', 100),
+                'max_mb' => (int) config('audio.max_upload_mb', 10),
             ],
             'routes' => [
                 'upload' => route('audio.upload'),

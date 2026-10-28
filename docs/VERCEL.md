@@ -286,7 +286,7 @@ worker is not required for a smoke-test deployment.
   cron endpoint, if you need expired exports and trash removed on schedule.
 - Cold starts include container startup and Laravel cache warm-up.
 - The Vercel Container runtime and Daemons are currently beta features.
-- If you need the full 100 MB / 30-minute workflow with a persistent queue and
+- If you need the full 10 MB / 30-minute workflow with a persistent queue and
   simpler operations, a container host such as Railway, Render, Fly.io, or a VPS
   is a better fit than Vercel.
 

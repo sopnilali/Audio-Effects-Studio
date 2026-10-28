@@ -17,7 +17,7 @@ class PresignAudioUploadRequest extends FormRequest
      */
     public function rules(): array
     {
-        $maxBytes = max(1, (int) config('audio.max_upload_mb', 100)) * 1024 * 1024;
+        $maxBytes = max(1, (int) config('audio.max_upload_mb', 10)) * 1024 * 1024;
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -49,7 +49,7 @@ class PresignAudioUploadRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'size.max' => 'Each audio file must be smaller than '.(int) config('audio.max_upload_mb', 100).' MB.',
+            'size.max' => 'Each audio file must be smaller than '.(int) config('audio.max_upload_mb', 10).' MB.',
         ];
     }
 }

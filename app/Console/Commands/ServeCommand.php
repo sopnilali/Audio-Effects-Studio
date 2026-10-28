@@ -17,7 +17,7 @@ class ServeCommand extends BaseServeCommand
     protected function serverCommand()
     {
         $command = parent::serverCommand();
-        $maxUploadMb = max(1, (int) config('audio.max_upload_mb', 100));
+        $maxUploadMb = max(1, (int) config('audio.max_upload_mb', 10));
         $postMaxMb = $maxUploadMb + 10;
 
         array_splice($command, 1, 0, [

@@ -10,7 +10,7 @@ return [
     | post_max_size settings. The FormRequest enforces the limits again.
     |
     */
-    'max_upload_mb' => (int) env('AUDIO_MAX_UPLOAD_MB', 100),
+    'max_upload_mb' => (int) env('AUDIO_MAX_UPLOAD_MB', 10),
     'max_files_per_upload' => (int) env('AUDIO_MAX_FILES_PER_UPLOAD', 10),
     'max_files_per_user' => (int) env('AUDIO_MAX_FILES_PER_USER', 100),
     'max_duration_seconds' => (int) env('AUDIO_MAX_DURATION_SECONDS', 1800),

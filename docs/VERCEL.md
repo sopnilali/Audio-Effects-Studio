@@ -29,7 +29,7 @@ uses `/tmp`.
 APP_URL=https://your-project.vercel.app
 DB_CONNECTION=sqlite
 DB_DATABASE=/tmp/laravel/database.sqlite
-SESSION_DRIVER=file
+SESSION_DRIVER=cookie
 CACHE_STORE=file
 FILESYSTEM_DISK=local
 AUDIO_DISK=local
